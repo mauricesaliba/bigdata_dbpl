@@ -15,7 +15,7 @@ rm -f /usr/local/giraph/myassignment/mypackage/$code_file.java
 #delete old compiled code
 rm -f /usr/local/giraph/myassignment/mypackage/$code_file.class
 #copy new code
-cp /home/temp/giraph/mypackage/$code_file.java  /usr/local/giraph/myassignment/mypackage
+cp /home/temp/masters_dm_assignment/giraph/mypackage/$code_file.java  /usr/local/giraph/myassignment/mypackage
 #compile new code
 cd /usr/local/giraph/myassignment/
 javac -cp /usr/local/giraph/giraph-examples/target/giraph-examples-1.1.0-SNAPSHOT-for-hadoop-2.4.1-jar-with-dependencies.jar:$($HADOOP_HOME/bin/hadoop classpath) /usr/local/giraph/myassignment/mypackage/$code_file.java
