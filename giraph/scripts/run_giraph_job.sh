@@ -3,11 +3,14 @@
 code_file=$1
 input_file=$2
 echo "----------------------        Starting running giraph job!! with $code_file -----------------------"
-
+#change current direcotry to giraph home
+cd $GIRAPH_HOME
 #build jar file
 /home/temp/masters_dm_assignment/giraph/scripts/makejar.sh $code_file
 #clean output of previous jobs
 $HADOOP_HOME/bin/hdfs dfs -rm -f -r  /user/root/dummy-output
+#clean input file before loading
+$HADOOP_HOME/bin/hdfs dfs -rm -f -r  /user/root/input/$input_file
 #load giraph input file onto hadoop cluster
 $HADOOP_HOME/bin/hdfs dfs -put /home/temp/masters_dm_assignment/giraph/files_input/$input_file /user/root/input/$input_file
 #run giraph job on top of hadoop
