@@ -1,1 +1,6 @@
 /giraph-examples
+/giraph/files_input/delete_this
+/data/dblp_replace_amp_sample.xml
+/data/full.qvw
+/giraph/files_input/input_data_authors_articles_full.txt
+/giraph/mypackage/LPA.java
