@@ -1,0 +1,1 @@
+use the short sample to do quick tests with qlickview
