@@ -36,18 +36,18 @@ public class lpaComputation extends BasicComputation<LongWritable, PropagationHi
 {
     public void compute(Vertex<LongWritable, PropagationHistory, LongWritable> vertex, Iterable<PropagatedMessage> messages) throws IOException 
 	{	
-		log("______________________________________________________________________________________________ getId: " +  vertex.getId());
+		
 		
 		
 		if(getSuperstep() == 0)
 		{
 			vertex.setValue(new PropagationHistory(vertex.getId().get(),vertex.getId().get()));
-			PropagatedMessage propagatedMessage = new PropagatedMessage(vertex.getId().get(),vertex.getId().get()); // send to all neighbours who is the mos frequent neighbour.
+			PropagatedMessage propagatedMessage = new PropagatedMessage(vertex.getId().get(),vertex.getId().get()); // send to all neighbours own id as label.
 			sendMessageToAllEdges(vertex, propagatedMessage);			
 		}
 		else
 		{
-			
+			//receive message from neighbours and set edge value with each receive propagated value
 			for (PropagatedMessage message : messages) 
 			{
 				long labelValue = message.getLabelValue();
@@ -55,28 +55,59 @@ public class lpaComputation extends BasicComputation<LongWritable, PropagationHi
 				vertex.setEdgeValue(new LongWritable(sourceVertexId), new LongWritable(labelValue));
 			}
 			
+			//store count(value) for each label per label (key)
 			Map<Long, Long> mapLabelsCount = new HashMap<Long, Long>();
 			for (Edge<LongWritable, LongWritable> edge : vertex.getEdges()) 
 			{
-				Long edgeTargetVertexId = edge.getTargetVertexId().get();
-				Long newEdgeTargetValue = edge.getValue().get() + 1;
-				mapLabelsCount.put(edgeTargetVertexId,newEdgeTargetValue);
+				//Long edgeTargetVertexId = edge.getTargetVertexId().get();
+				//Long newEdgeTargetValue = edge.getValue().get() + 1;
+				//mapLabelsCount.put(edgeTargetVertexId,newEdgeTargetValue);
+				
+				
+				long edgeLabel = edge.getValue().get();
+				//if label exists increase its count else store it for the first time
+				if(mapLabelsCount.containsKey(edgeLabel))
+				{
+					Long currentLabelCountValue = mapLabelsCount.get(edgeLabel);
+					Long newLabelCountValue = currentLabelCountValue + 1;
+					mapLabelsCount.put(edgeLabel,newLabelCountValue);
+				}
+				else
+				{
+					mapLabelsCount.put(edgeLabel,1L);
+				}
+								
 			}
 			
 			Long mostOccuringLabel = modeLabels(mapLabelsCount); //most frequent neighbouring edge
 			Long currentLabel = vertex.getValue().getCurrentLabel();  
-			Long previousLabel = vertex.getValue().getPreviousLabel();
-			
-			
-			Long clOccurence = mapLabelsCount.get(currentLabel);
+			Long previousLabel = vertex.getValue().getPreviousLabel();			
+			Long currentLabelOccurence = mapLabelsCount.get(currentLabel) == null? 0L : mapLabelsCount.get(currentLabel);
 			Long maxLabelOccurence = mapLabelsCount.get(mostOccuringLabel);
 			
-			if(clOccurence < maxLabelOccurence && mostOccuringLabel != previousLabel)
-			{
-				vertex.setValue(new PropagationHistory(currentLabel,mostOccuringLabel)); // set previous most highly frequent neighbour and current highest one.
-				PropagatedMessage propagatedMessage = new PropagatedMessage(vertex.getId().get(),mostOccuringLabel); // send to all neighbours who is the mos frequent neighbour.
-				sendMessageToAllEdges(vertex, propagatedMessage);
-			}
+			log( " getId:   " + vertex.getId() + 
+					" mostOccuringLabel:   " + 	mostOccuringLabel + 
+					" vertex.getValue():   " + vertex.getValue() + 
+					" currentLabelOccurence:   " + currentLabelOccurence +
+					" maxLabelOccurence:   " + maxLabelOccurence 
+					
+					
+					);
+			
+			
+			//check here // converging too quickly because of null check.
+			//if(maxLabelOccurence !=null && mostOccuringLabel != null && previousLabel != null)
+			//{
+				if(mostOccuringLabel != null && currentLabelOccurence != null)
+				{
+					if((getSuperstep() == 1) || (currentLabelOccurence < maxLabelOccurence  && mostOccuringLabel != previousLabel))
+					{
+						vertex.setValue(new PropagationHistory(currentLabel,mostOccuringLabel)); // set previous most highly frequent neighbour and current highest one.
+						PropagatedMessage propagatedMessage = new PropagatedMessage(vertex.getId().get(),mostOccuringLabel); // send to all neighbours who is the mos frequent neighbour.
+						sendMessageToAllEdges(vertex, propagatedMessage);
+					}
+				}
+			//}
 		}	
         
         vertex.voteToHalt();
@@ -84,8 +115,8 @@ public class lpaComputation extends BasicComputation<LongWritable, PropagationHi
 	
 	private Long modeLabels(Map<Long, Long> mapLabelsCount)
 	{
-		Long maxLabelOccuring = -9999999L;
-		Long maxOccurence = -9999999L;
+		Long maxLabelOccuring = Long.MIN_VALUE;
+		Long maxOccurence = Long.MIN_VALUE;
 		
 		for (Map.Entry<Long, Long> entry : mapLabelsCount.entrySet()) 
 		{
@@ -97,7 +128,7 @@ public class lpaComputation extends BasicComputation<LongWritable, PropagationHi
 				maxLabelOccuring = label;
 			}
 		}		
-		return maxLabelOccuring;
+		return maxLabelOccuring == Long.MIN_VALUE ? null : maxLabelOccuring;
 	}	
 	
 	private void log(String text)
