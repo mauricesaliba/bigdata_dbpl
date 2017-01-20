@@ -14,5 +14,5 @@ $HADOOP_HOME/bin/hdfs dfs -rm -f -r  /user/root/input/$input_file
 #load giraph input file onto hadoop cluster
 $HADOOP_HOME/bin/hdfs dfs -put /home/temp/masters_dm_assignment/giraph/files_input/$input_file /user/root/input/$input_file
 #run giraph job on top of hadoop
-$HADOOP_HOME/bin/hadoop jar /usr/local/giraph/myassignment/myjar.jar org.apache.giraph.GiraphRunner mypackage.$code_file --yarnjars myjar.jar --workers 1 --vertexInputFormat org.apache.giraph.io.formats.JsonLongNullLongLongPropagationVertexInputFormat --vertexInputPath /user/root/input/$input_file -vertexOutputFormat org.apache.giraph.io.formats.IdWithValueTextOutputFormat --outputPath /user/root/dummy-output
+$HADOOP_HOME/bin/hadoop jar /usr/local/giraph/myassignment/myjar.jar org.apache.giraph.GiraphRunner mypackage.$code_file --yarnjars myjar.jar --yarnheap 2048 --workers 2 --vertexInputFormat org.apache.giraph.io.formats.JsonLongNullLongLongPropagationVertexInputFormat --vertexInputPath /user/root/input/$input_file -vertexOutputFormat org.apache.giraph.io.formats.IdWithValueTextOutputFormat --outputPath /user/root/dummy-output
 echo "----------------------------         FINISHED GIRAPH JOB          -------------------------------"

@@ -2,69 +2,67 @@ package mypackage;
 
 import org.apache.giraph.graph.BasicComputation;
 import org.apache.giraph.graph.Vertex;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableComparable;
-
-import org.apache.giraph.conf.LongConfOption;
 import org.apache.giraph.edge.Edge;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.log4j.Logger;
-
 import java.io.PrintWriter;
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Map;
 import java.util.HashMap;
-
-
 import java.io.IOException;
 
 
 /*
 
 label propagation.
-Initially label is vertex own id and then it evolves to the most edge id which is most present in community.
-
-
+Initially label is vertex own id and then it evolves to the most edge id which is most frequently occurring surrounding neighbours.
 */
 public class lpaComputation extends BasicComputation<LongWritable, PropagationHistory, LongWritable, PropagatedMessage> 
 {
     public void compute(Vertex<LongWritable, PropagationHistory, LongWritable> vertex, Iterable<PropagatedMessage> messages) throws IOException 
-	{	
-		
-		
-		
+	{		
 		if(getSuperstep() == 0)
 		{
+			//vertex.removeEdges(vertex.getId());
 			vertex.setValue(new PropagationHistory(vertex.getId().get(),vertex.getId().get()));
-			PropagatedMessage propagatedMessage = new PropagatedMessage(vertex.getId().get(),vertex.getId().get()); // send to all neighbours own id as label.
+			// send to all neighbours own id as label.	
+			PropagatedMessage propagatedMessage = new PropagatedMessage(vertex.getId().get(),vertex.getId().get()); 		
 			sendMessageToAllEdges(vertex, propagatedMessage);			
 		}
 		else
-		{
+		{			
+			StringBuilder delete_log = new StringBuilder();
+			delete_log.append("Vertex:");
+			delete_log.append(vertex.getId().get());
+			delete_log.append("(");
+			delete_log.append(getSuperstep());			
+			delete_log.append(") ");	
+			delete_log.append("message_source_label: ");
+		
+			
 			//receive message from neighbours and set edge value with each receive propagated value
 			for (PropagatedMessage message : messages) 
 			{
 				long labelValue = message.getLabelValue();
 				long sourceVertexId = message.getSourceVertexId();
 				vertex.setEdgeValue(new LongWritable(sourceVertexId), new LongWritable(labelValue));
+				
+				delete_log.append(sourceVertexId);				
+				delete_log.append("-");
+				delete_log.append(labelValue);
+				delete_log.append(",");
 			}
+			
+			delete_log.append("@   ");
+			delete_log.append("retrievedEdgeValues: ");
 			
 			//store count(value) for each label per label (key)
 			Map<Long, Long> mapLabelsCount = new HashMap<Long, Long>();
 			for (Edge<LongWritable, LongWritable> edge : vertex.getEdges()) 
 			{
-				//Long edgeTargetVertexId = edge.getTargetVertexId().get();
-				//Long newEdgeTargetValue = edge.getValue().get() + 1;
-				//mapLabelsCount.put(edgeTargetVertexId,newEdgeTargetValue);
-				
-				
 				long edgeLabel = edge.getValue().get();
+				delete_log.append(edgeLabel);
+				delete_log.append(",");
 				//if label exists increase its count else store it for the first time
 				if(mapLabelsCount.containsKey(edgeLabel))
 				{
@@ -75,8 +73,7 @@ public class lpaComputation extends BasicComputation<LongWritable, PropagationHi
 				else
 				{
 					mapLabelsCount.put(edgeLabel,1L);
-				}
-								
+				}								
 			}
 			
 			Long mostOccuringLabel = modeLabels(mapLabelsCount); //most frequent neighbouring edge
@@ -85,29 +82,25 @@ public class lpaComputation extends BasicComputation<LongWritable, PropagationHi
 			Long currentLabelOccurence = mapLabelsCount.get(currentLabel) == null? 0L : mapLabelsCount.get(currentLabel);
 			Long maxLabelOccurence = mapLabelsCount.get(mostOccuringLabel);
 			
-			log( " getId:   " + vertex.getId() + 
-					" mostOccuringLabel:   " + 	mostOccuringLabel + 
-					" vertex.getValue():   " + vertex.getValue() + 
-					" currentLabelOccurence:   " + currentLabelOccurence +
-					" maxLabelOccurence:   " + maxLabelOccurence 
-					
-					
-					);
+			boolean IsPropagationUpdated = false;
 			
-			
-			//check here // converging too quickly because of null check.
-			//if(maxLabelOccurence !=null && mostOccuringLabel != null && previousLabel != null)
-			//{
-				if(mostOccuringLabel != null && currentLabelOccurence != null)
+			if(mostOccuringLabel != null && currentLabelOccurence != null)
+			{
+				if((getSuperstep() == 1) || (currentLabelOccurence < maxLabelOccurence  && mostOccuringLabel != previousLabel))
 				{
-					if((getSuperstep() == 1) || (currentLabelOccurence < maxLabelOccurence  && mostOccuringLabel != previousLabel))
-					{
-						vertex.setValue(new PropagationHistory(currentLabel,mostOccuringLabel)); // set previous most highly frequent neighbour and current highest one.
-						PropagatedMessage propagatedMessage = new PropagatedMessage(vertex.getId().get(),mostOccuringLabel); // send to all neighbours who is the mos frequent neighbour.
-						sendMessageToAllEdges(vertex, propagatedMessage);
-					}
+					vertex.setValue(new PropagationHistory(currentLabel,mostOccuringLabel)); // set previous most highly frequent neighbour and current highest one.
+					PropagatedMessage propagatedMessage = new PropagatedMessage(vertex.getId().get(),mostOccuringLabel); // send to all neighbours who is the mos frequent neighbour.
+					sendMessageToAllEdges(vertex, propagatedMessage);
 				}
-			//}
+				IsPropagationUpdated = true;
+			}
+			
+			delete_log.append("@   ");
+			delete_log.append(" IsPropagationUpdated:");
+			delete_log.append(IsPropagationUpdated);
+			
+			//TODO - this logging is resourceful and should be removed
+			//log(delete_log.toString());						
 		}	
         
         vertex.voteToHalt();

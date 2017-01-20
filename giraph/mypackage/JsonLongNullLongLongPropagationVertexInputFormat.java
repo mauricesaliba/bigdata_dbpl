@@ -87,7 +87,7 @@ public class JsonLongNullLongLongPropagationVertexInputFormat extends TextVertex
       for (int i = 0; i < jsonEdgeArray.length(); ++i) 
 	  {
         JSONArray jsonEdge = jsonEdgeArray.getJSONArray(i);
-        edges.add(EdgeFactory.create(new LongWritable(jsonEdge.getLong(0)), new LongWritable((long) jsonEdge.getLong(1))));
+        edges.add(EdgeFactory.create(new LongWritable(jsonEdge.getLong(0)), new LongWritable((long) jsonEdge.getLong(0))));
       }
       return edges;
     }

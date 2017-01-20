@@ -6,6 +6,8 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
 
+
+//this data class store previous and current label which is used in label propagation algorithm
 public class PropagationHistory implements Writable
   {
 
@@ -46,7 +48,11 @@ public class PropagationHistory implements Writable
     @Override
     public String toString() 
 	{
-      return "(previousLabel=" + previousLabel + ",currentLabel=" + currentLabel + ")";
+      StringBuilder str = new StringBuilder();
+      str.append(previousLabel);
+      str.append(",");
+      str.append(currentLabel);
+      return str.toString();
     }
 
 	public void readFields(DataInput input) throws IOException 
